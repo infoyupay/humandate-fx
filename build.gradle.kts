@@ -2,6 +2,7 @@ plugins {
     `java-library`
     `maven-publish`
     signing
+    id("org.openjfx.javafxplugin") version "0.1.0"
 }
 
 group = "com.infoyupay.humandate"
@@ -13,6 +14,12 @@ java {
 
     withSourcesJar()
     withJavadocJar()
+}
+
+javafx {
+    // Keep minimal for now
+    version = "21.0.9"
+    modules = listOf("javafx.controls")
 }
 
 repositories {
