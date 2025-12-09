@@ -5,6 +5,7 @@
  */
 module com.infoyupay.humandate.fx {
     //TODO:
+    exports com.infoyupay.humandate.fx;
 
     requires javafx.base;
     requires javafx.controls;
