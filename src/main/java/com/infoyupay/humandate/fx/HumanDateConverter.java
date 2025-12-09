@@ -16,6 +16,7 @@
  *
  */
 
+
 package com.infoyupay.humandate.fx;
 
 import com.infoyupay.humandate.core.HumanDateFormatter;
@@ -35,188 +36,233 @@ import java.util.Objects;
  * value with its human-friendly string representation.
  * <br/>
  * <p>
- * This converter delegates the formatting to a {@link HumanDateFormatter},
- * and the parsing to a {@link HumanDateParser}. It is designed to integrate
+ * This converter delegates the formatting to an internal {@link HumanDateFormatter},
+ * and the parsing to an internal {@link HumanDateParser}. It is designed to integrate
  * seamlessly with JavaFX controls such as {@code TextField}, {@code DatePicker},
  * or any component that requires a bidirectional conversion between
  * {@code LocalDate} and {@code String}.
  * <br/>
  * <p>
- * There are two supported ways to customize its behavior:
+ * Its behavior can be adapted dynamically through two observable JavaFX
+ * properties:
  * <ul>
- *     <li><b>Dependency injection:</b> Provide your own formatter and parser
- *         instances through the constructor.</li>
- *     <li><b>Mutable defaults:</b> Use the default constructor and then adjust
- *         the internal {@link HumanDateFormatter} or {@link HumanDateParser}
- *         via their getters (e.g., changing language or rules without replacing
- *         the entire components).</li>
+ *     <li>{@link #languageProperty() language}: controls natural-language parsing rules</li>
+ *     <li>{@link #formatProperty() format}: controls string formatting rules</li>
  * </ul>
- * This dual approach enables both simple tweaks (language/pattern change) and full
- * customization when required.
+ * These properties govern the internal components, ensuring that any change has
+ * immediate effect without replacing this converter or any attached
+ * {@link HumanDateTextFormatter}.
  * <br/>
- * <p>
- * By default, this converter uses:
- * <ul>
- *     <li>A new {@code HumanDateFormatter} with its default pattern.</li>
- *     <li>A {@code HumanDateParser} configured with Spanish support ({@link Languages#es()}).</li>
- * </ul>
- * These defaults match common usage in Spanish-speaking environments.
+ * <p><b>Important:</b> If either property is <em>bound</em> to another property,
+ * mutating it via {@code withLanguage(...)} or {@code withFormat(...)} will trigger
+ * an {@link IllegalStateException}. In that case, unbind first.
  * <br/>
  * <p><b>Example usage:</b></p>
  * {@snippet :
- * import com.infoyupay.humandate.fx.HumanDateConverter;
- * import com.infoyupay.humandate.core.Languages;
- * import javafx.scene.control.DatePicker;
- *
- * DatePicker dp = new DatePicker();
- * HumanDateConverter converter = new HumanDateConverter();
- * // Adjust only the parser language (no need to replace the whole parser)
- * converter.getParser().setLanguage(Languages.en());
- * dp.setConverter(converter);
+ * var converter = HumanDateConverter.es();
+ * converter.withLanguage(Languages.en())
+ *          .withFormat(DateTimeFormatter.ofPattern("MM/dd/yyyy"));
+ *}
+ * <br/>
+ * <p><b>FXML usage:</b></p>
+ * {@snippet lang = "fxml":
+ * <TextField>
+ *     <textFormatter>
+ *         <HumanDateTextFormatter fx:factory="es"/>
+ *     </textFormatter>
+ * </TextField>
  *}
  *
- * @author David Vidal, Infoyupay
- * @version 1.0
+ * @author David Vidal
+ * @version 1.3
  */
 public final class HumanDateConverter extends StringConverter<LocalDate> {
 
-    private final SimpleObjectProperty<HumanDateFormatter> formatter
-            = new SimpleObjectProperty<>(this, "formatter");
-    private final SimpleObjectProperty<HumanDateParser> parser
-            = new SimpleObjectProperty<>(this, "parser");
+    /**
+     * Default formatting rule used when no custom format is provided.
+     * <br/>
+     * Pattern: {@code dd/MM/yyyy}
+     */
+    private static final DateTimeFormatter DEFAULT_FORMAT =
+            DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     /**
-     * Creates a converter with the given formatter and parser.
-     * Both arguments must be non-null.
-     *
-     * @param formatter the formatter used to convert a date to string
-     * @param parser    the parser used to convert a string to date
+     * Internal formatter instance used for rendering text output.
+     * <br/>
+     * This component is updated automatically when the
+     * {@link #formatProperty() format} property changes.
      */
-    public HumanDateConverter(HumanDateFormatter formatter, HumanDateParser parser) {
-        this.formatter.set(Objects.requireNonNull(formatter));
-        this.parser.set(Objects.requireNonNull(parser));
+    private final HumanDateFormatter formatter =
+            new HumanDateFormatter().withFormatter(DEFAULT_FORMAT);
+
+    /**
+     * Internal parser instance used for interpreting input text.
+     * <br/>
+     * This component is updated automatically when the
+     * {@link #languageProperty() language} property changes.
+     */
+    private final HumanDateParser parser =
+            new HumanDateParser().setLanguage(Languages.es());
+
+    /**
+     * Language used to interpret human-friendly expressions such as
+     * {@code "hoy"}, {@code "mañana"}, {@code "now"}, {@code "yesterday"}.
+     * <br/>
+     * Mutating this property updates the internal parser accordingly.
+     */
+    private final ObjectProperty<LanguageSupport> language =
+            new SimpleObjectProperty<>(this, "language", Languages.es()) {
+                @Override
+                public void set(final LanguageSupport lang) {
+                    parser.setLanguage(lang);
+                    super.set(lang);
+                }
+            };
+
+    /**
+     * Formatting rule used for textual representation.
+     * <br/>
+     * Mutating this property updates the internal formatter accordingly.
+     */
+    private final ObjectProperty<DateTimeFormatter> format =
+            new SimpleObjectProperty<>(this, "format", DEFAULT_FORMAT) {
+                @Override
+                public void set(final DateTimeFormatter dtf) {
+                    formatter.withFormatter(dtf);
+                    super.set(dtf);
+                }
+            };
+
+    /**
+     * Creates a converter with specific initial language and formatting rule.
+     *
+     * @param lang language configuration
+     * @param dtf  formatting rule
+     */
+    public HumanDateConverter(final LanguageSupport lang,
+                              final DateTimeFormatter dtf) {
+        this.language.set(Objects.requireNonNull(lang));
+        this.format.set(Objects.requireNonNull(dtf));
+
+        parser.setLanguage(lang);
+        formatter.withFormatter(dtf);
     }
 
     /**
-     * Creates a converter with default components:
-     * <br/>
-     * <ul>
-     *     <li>a new {@code HumanDateFormatter}</li>
-     *     <li>a new {@code HumanDateParser} configured with {@code Languages.es()}</li>
-     * </ul>
+     * Creates a converter with Spanish language and default formatting rule.
      */
     public HumanDateConverter() {
-        this(new HumanDateFormatter(), new HumanDateParser().setLanguage(Languages.es()));
+        this(Languages.es(), DEFAULT_FORMAT);
     }
 
+    // --- Static factories for FXMLLoader usage ---
 
     /**
-     * Creates a {@code HumanDateConverter} configured for Spanish.
-     * <br/>
-     * <p>
-     * This factory uses a new {@link HumanDateFormatter} with its default
-     * pattern and a {@link HumanDateParser} configured with
-     * {@link Languages#es()}.
-     *
-     * @return a converter using Spanish language rules
+     * @return converter configured for Spanish
      */
     public static HumanDateConverter es() {
-        return new HumanDateConverter(
-                new HumanDateFormatter(),
-                new HumanDateParser().setLanguage(Languages.es())
-        );
+        return new HumanDateConverter(Languages.es(), DEFAULT_FORMAT);
     }
 
     /**
-     * Creates a {@code HumanDateConverter} configured for English.
-     * <br/>
-     * <p>
-     * This factory uses a new {@link HumanDateFormatter} with its default
-     * pattern and a {@link HumanDateParser} configured with
-     * {@link Languages#en()}.
-     *
-     * @return a converter using English language rules
+     * @return converter configured for English
      */
     public static HumanDateConverter en() {
-        return new HumanDateConverter(
-                new HumanDateFormatter(),
-                new HumanDateParser().setLanguage(Languages.en())
-        );
+        return new HumanDateConverter(Languages.en(), DEFAULT_FORMAT);
     }
 
     /**
-     * Creates a {@code HumanDateConverter} configured for Quechua.
-     * <br/>
-     * <p>
-     * This factory uses a new {@link HumanDateFormatter} with its default
-     * pattern and a {@link HumanDateParser} configured with
-     * {@link Languages#que()}.
-     *
-     * @return a converter using Quechua language rules
+     * @return converter configured for Quechua
      */
     public static HumanDateConverter que() {
-        return new HumanDateConverter(
-                new HumanDateFormatter(),
-                new HumanDateParser().setLanguage(Languages.que())
-        );
+        return new HumanDateConverter(Languages.que(), DEFAULT_FORMAT);
     }
 
+    // --- Conversion overrides ---
+
     /**
-     * Converts the given {@link LocalDate} into a human-readable text using the configured
-     * formatter. If {@code localDate} is {@code null}, this method returns {@code null}.
-     *
-     * @param localDate the date to convert, or {@code null}
-     * @return formatted text or {@code null}
+     * Converts a date into human-friendly text using the configured formatter.
+     * If {@code localDate} is {@code null}, returns {@code null}.
      */
     @Override
-    public String toString(LocalDate localDate) {
-        return getFormatter().apply(localDate);
+    public String toString(final LocalDate localDate) {
+        return formatter.apply(localDate);
     }
 
     /**
-     * Parses the given string into a {@link LocalDate} using the configured parser.
-     * If {@code s} is {@code null} or blank, this method returns {@code null}.
-     *
-     * @param s the string to parse, may be blank
-     * @return parsed date or {@code null}
+     * Parses the given string into a {@link LocalDate}.
+     * If {@code s} is {@code null} or blank, returns {@code null}.
      */
     @Override
-    public LocalDate fromString(String s) {
-        return getParser().apply(s);
+    public LocalDate fromString(final String s) {
+        return parser.apply(s);
+    }
+
+    // --- Language property access ---
+
+    /**
+     * Current language used for human-friendly parsing.
+     *
+     * @return current language configuration
+     */
+    public LanguageSupport getLanguage() {
+        return language.get();
     }
 
     /**
-     * Returns the formatter instance used by this converter.
+     * Language property for binding in JavaFX.
      *
-     * @return the {@link HumanDateFormatter} in use
+     * @return mutable JavaFX property for language rules
      */
-    public HumanDateFormatter getFormatter() {
-        return formatter.get();
+    public ObjectProperty<LanguageSupport> languageProperty() {
+        return language;
     }
 
     /**
-     * Returns the parser instance used by this converter.
+     * Fluent setter variant for language configuration.
+     * <br/>
+     * Notes: if {@link #languageProperty()} is currently bound, this will trigger
+     * {@link IllegalStateException}.
      *
-     * @return the {@link HumanDateParser} in use
+     * @param lang new language
+     * @return this instance, for method chaining
      */
-    public HumanDateParser getParser() {
-        return parser.get();
+    public HumanDateConverter withLanguage(final LanguageSupport lang) {
+        this.language.setValue(Objects.requireNonNull(lang));
+        return this;
     }
 
-    public void setFormatter(HumanDateFormatter formatter){
-        this.formatter.setValue(formatter);
+    // --- Format property access ---
+
+    /**
+     * Current pattern rule for formatting.
+     *
+     * @return current {@link DateTimeFormatter}
+     */
+    public DateTimeFormatter getFormat() {
+        return format.get();
     }
 
-    public void setParser(HumanDateParser parser){
-        this.parser.setValue(parser);
+    /**
+     * Format property for binding in JavaFX.
+     *
+     * @return mutable JavaFX property for formatting rule
+     */
+    public ObjectProperty<DateTimeFormatter> formatProperty() {
+        return format;
     }
 
-    public ObjectProperty<HumanDateParser> parserProperty(){
-        return parser;
+    /**
+     * Fluent setter variant for formatting configuration.
+     * <br/>
+     * Notes: if {@link #formatProperty()} is currently bound, this will trigger
+     * {@link IllegalStateException}.
+     *
+     * @param dtf new pattern formatter
+     * @return this instance, for method chaining
+     */
+    public HumanDateConverter withFormat(final DateTimeFormatter dtf) {
+        this.format.setValue(Objects.requireNonNull(dtf));
+        return this;
     }
-
-    public ObjectProperty<HumanDateFormatter> formatterProperty(){
-        return formatter;
-    }
-
 }

@@ -18,9 +18,13 @@
 
 package com.infoyupay.humandate.fx;
 
+import com.infoyupay.humandate.core.LanguageSupport;
+import javafx.beans.property.ObjectProperty;
 import javafx.scene.control.TextFormatter;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.Objects;
 
 /**
  * A {@link TextFormatter} specialization that uses {@link HumanDateConverter}
@@ -53,13 +57,18 @@ import java.time.LocalDate;
  */
 public class HumanDateTextFormatter extends TextFormatter<LocalDate> {
 
+    private final HumanDateConverter valueConverter;
+
     /**
      * Creates a formatter using the provided {@link HumanDateConverter}.
+     * <br/>
+     * The converter must not be {@code null}.
      *
-     * @param converter the converter controlling parsing and formatting behavior
+     * @param converter underlying converter (must not be null)
      */
-    public HumanDateTextFormatter(HumanDateConverter converter) {
-        super(converter);
+    public HumanDateTextFormatter(final HumanDateConverter converter) {
+        super(Objects.requireNonNull(converter));
+        this.valueConverter = converter;
     }
 
     /**
@@ -70,6 +79,7 @@ public class HumanDateTextFormatter extends TextFormatter<LocalDate> {
     public HumanDateTextFormatter() {
         this(new HumanDateConverter());
     }
+
 
     /**
      * Factory for a Spanish-enabled formatter.
@@ -97,4 +107,57 @@ public class HumanDateTextFormatter extends TextFormatter<LocalDate> {
     public static HumanDateTextFormatter que() {
         return new HumanDateTextFormatter(HumanDateConverter.que());
     }
+
+    // --- Language property passthrough ---
+
+    /**
+     * Language property used to interpret human-friendly expressions.
+     * <br/>
+     * Delegates to the underlying converter.
+     *
+     * @return mutable JavaFX property controlling parsing language
+     */
+    public final ObjectProperty<LanguageSupport> languageProperty() {
+        return valueConverter.languageProperty();
+    }
+
+    /**
+     * Fluent setter for language configuration.
+     * <br/>
+     * Equivalent to {@code languageProperty().setValue(lang)}.
+     *
+     * @param lang new language support
+     * @return this instance, for chaining
+     */
+    public final HumanDateTextFormatter withLanguage(final LanguageSupport lang) {
+        languageProperty().setValue(lang);
+        return this;
+    }
+
+// --- Format property passthrough ---
+
+    /**
+     * Format property controlling string formatting rules.
+     * <br/>
+     * Delegates to the underlying converter.
+     *
+     * @return mutable JavaFX property controlling format rules
+     */
+    public final ObjectProperty<DateTimeFormatter> formatProperty() {
+        return valueConverter.formatProperty();
+    }
+
+    /**
+     * Fluent setter for formatting rule.
+     * <br/>
+     * Equivalent to {@code formatProperty().setValue(pattern)}.
+     *
+     * @param dtf new Java {@link DateTimeFormatter}
+     * @return this instance, for chaining
+     */
+    public final HumanDateTextFormatter withFormat(final DateTimeFormatter dtf) {
+        formatProperty().setValue(dtf);
+        return this;
+    }
+
 }
