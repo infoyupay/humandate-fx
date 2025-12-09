@@ -23,6 +23,7 @@ import javafx.beans.binding.Bindings;
 import javafx.beans.binding.ObjectBinding;
 import javafx.beans.binding.StringBinding;
 import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.value.ObservableValue;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -110,9 +111,9 @@ public final class LocalDateProperty extends SimpleObjectProperty<LocalDate> {
      * @param formatterBinding binding providing the active formatter
      * @return a string binding reflecting human-friendly output
      */
-    public StringBinding asHumanString(final ObjectBinding<HumanDateFormatter> formatterBinding) {
+    public StringBinding asHumanString(final ObservableValue<HumanDateFormatter> formatterBinding) {
         return Bindings.createStringBinding(() -> {
-            var fmt = formatterBinding.get();
+            var fmt = formatterBinding.getValue();
             var val = getValue();
             if (fmt == null || val == null) return "";
             return fmt.apply(val);
