@@ -104,6 +104,58 @@ public final class HumanDateConverter extends StringConverter<LocalDate> {
         this.parser = new HumanDateParser().setLanguage(Languages.es());
     }
 
+
+    /**
+     * Creates a {@code HumanDateConverter} configured for Spanish.
+     * <br/>
+     * <p>
+     * This factory uses a new {@link HumanDateFormatter} with its default
+     * pattern and a {@link HumanDateParser} configured with
+     * {@link Languages#es()}.
+     *
+     * @return a converter using Spanish language rules
+     */
+    public static HumanDateConverter es() {
+        return new HumanDateConverter(
+                new HumanDateFormatter(),
+                new HumanDateParser().setLanguage(Languages.es())
+        );
+    }
+
+    /**
+     * Creates a {@code HumanDateConverter} configured for English.
+     * <br/>
+     * <p>
+     * This factory uses a new {@link HumanDateFormatter} with its default
+     * pattern and a {@link HumanDateParser} configured with
+     * {@link Languages#en()}.
+     *
+     * @return a converter using English language rules
+     */
+    public static HumanDateConverter en() {
+        return new HumanDateConverter(
+                new HumanDateFormatter(),
+                new HumanDateParser().setLanguage(Languages.en())
+        );
+    }
+
+    /**
+     * Creates a {@code HumanDateConverter} configured for Quechua.
+     * <br/>
+     * <p>
+     * This factory uses a new {@link HumanDateFormatter} with its default
+     * pattern and a {@link HumanDateParser} configured with
+     * {@link Languages#que()}.
+     *
+     * @return a converter using Quechua language rules
+     */
+    public static HumanDateConverter que() {
+        return new HumanDateConverter(
+                new HumanDateFormatter(),
+                new HumanDateParser().setLanguage(Languages.que())
+        );
+    }
+
     /**
      * Converts the given {@link LocalDate} into a human-readable text using the configured
      * formatter. If {@code localDate} is {@code null}, this method returns {@code null}.
