@@ -37,16 +37,19 @@ import java.time.LocalDate;
  * {@snippet :
  * var textField = new TextField();
  * textField.setTextFormatter(new HumanDateTextFormatter());
- * }
+ *}
  * <br/>
  * Usage example (FXML with Spanish defaults):
- * {@snippet lang="fxml" :
+ * {@snippet lang = "fxml":
  * <TextField>
  *     <textFormatter>
  *         <HumanDateTextFormatter fx:factory="es"/>
  *     </textFormatter>
  * </TextField>
- * }
+ *}
+ *
+ * @author David Vidal, Infoyupay
+ * @version 1.0
  */
 public class HumanDateTextFormatter extends TextFormatter<LocalDate> {
 
