@@ -20,10 +20,14 @@ package com.infoyupay.humandate.fx;
 
 import com.infoyupay.humandate.core.HumanDateFormatter;
 import com.infoyupay.humandate.core.HumanDateParser;
+import com.infoyupay.humandate.core.LanguageSupport;
 import com.infoyupay.humandate.core.Languages;
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.util.StringConverter;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.Objects;
 
 /**
@@ -76,8 +80,10 @@ import java.util.Objects;
  */
 public final class HumanDateConverter extends StringConverter<LocalDate> {
 
-    private final HumanDateFormatter formatter;
-    private final HumanDateParser parser;
+    private final SimpleObjectProperty<HumanDateFormatter> formatter
+            = new SimpleObjectProperty<>(this, "formatter");
+    private final SimpleObjectProperty<HumanDateParser> parser
+            = new SimpleObjectProperty<>(this, "parser");
 
     /**
      * Creates a converter with the given formatter and parser.
@@ -87,8 +93,8 @@ public final class HumanDateConverter extends StringConverter<LocalDate> {
      * @param parser    the parser used to convert a string to date
      */
     public HumanDateConverter(HumanDateFormatter formatter, HumanDateParser parser) {
-        this.formatter = Objects.requireNonNull(formatter);
-        this.parser = Objects.requireNonNull(parser);
+        this.formatter.set(Objects.requireNonNull(formatter));
+        this.parser.set(Objects.requireNonNull(parser));
     }
 
     /**
@@ -100,8 +106,7 @@ public final class HumanDateConverter extends StringConverter<LocalDate> {
      * </ul>
      */
     public HumanDateConverter() {
-        this.formatter = new HumanDateFormatter();
-        this.parser = new HumanDateParser().setLanguage(Languages.es());
+        this(new HumanDateFormatter(), new HumanDateParser().setLanguage(Languages.es()));
     }
 
 
@@ -165,7 +170,7 @@ public final class HumanDateConverter extends StringConverter<LocalDate> {
      */
     @Override
     public String toString(LocalDate localDate) {
-        return formatter.apply(localDate);
+        return getFormatter().apply(localDate);
     }
 
     /**
@@ -177,7 +182,7 @@ public final class HumanDateConverter extends StringConverter<LocalDate> {
      */
     @Override
     public LocalDate fromString(String s) {
-        return parser.apply(s);
+        return getParser().apply(s);
     }
 
     /**
@@ -186,7 +191,7 @@ public final class HumanDateConverter extends StringConverter<LocalDate> {
      * @return the {@link HumanDateFormatter} in use
      */
     public HumanDateFormatter getFormatter() {
-        return formatter;
+        return formatter.get();
     }
 
     /**
@@ -195,6 +200,23 @@ public final class HumanDateConverter extends StringConverter<LocalDate> {
      * @return the {@link HumanDateParser} in use
      */
     public HumanDateParser getParser() {
+        return parser.get();
+    }
+
+    public void setFormatter(HumanDateFormatter formatter){
+        this.formatter.setValue(formatter);
+    }
+
+    public void setParser(HumanDateParser parser){
+        this.parser.setValue(parser);
+    }
+
+    public ObjectProperty<HumanDateParser> parserProperty(){
         return parser;
     }
+
+    public ObjectProperty<HumanDateFormatter> formatterProperty(){
+        return formatter;
+    }
+
 }
