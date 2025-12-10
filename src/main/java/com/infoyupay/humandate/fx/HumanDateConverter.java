@@ -31,6 +31,8 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Objects;
 
+import static com.infoyupay.humandate.fx.HumanDateDefaults.DEFAULT_FORMAT;
+
 /**
  * A {@link StringConverter} implementation that bridges a {@link LocalDate}
  * value with its human-friendly string representation.
@@ -77,14 +79,6 @@ import java.util.Objects;
  * @version 1.3
  */
 public final class HumanDateConverter extends StringConverter<LocalDate> {
-
-    /**
-     * Default formatting rule used when no custom format is provided.
-     * <br/>
-     * Pattern: {@code dd/MM/yyyy}
-     */
-    private static final DateTimeFormatter DEFAULT_FORMAT =
-            DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     /**
      * Internal formatter instance used for rendering text output.
