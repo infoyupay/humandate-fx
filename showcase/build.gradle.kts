@@ -1,7 +1,6 @@
 plugins {
-    `java-library`
-    `maven-publish`
-    signing
+    id("java")
+    id("application")
     id("org.openjfx.javafxplugin") version "0.1.0"
 }
 
@@ -11,15 +10,17 @@ version = "1.0-SNAPSHOT"
 java {
     sourceCompatibility = JavaVersion.VERSION_21
     targetCompatibility = JavaVersion.VERSION_21
-
-    withSourcesJar()
-    withJavadocJar()
 }
 
 javafx {
     // Keep minimal for now
     version = "21.0.9"
-    modules = listOf("javafx.controls")
+    modules = listOf("javafx.controls", "javafx.fxml")
+}
+
+application {
+    mainClass = "com.infoyupay.humandate.fx.showcase.FxShowcaseApp"
+    mainModule = "com.infoyupay.humandate.fx.showcase"
 }
 
 repositories {
@@ -27,17 +28,10 @@ repositories {
 }
 
 dependencies {
-    api("com.infoyupay.humandate:humandate-core:1.0.0")
-
-    // JavaFX deps vendrán después
-    // testImplementation("org.testfx:testfx-junit5:...")
-
-    testImplementation(platform("org.junit:junit-bom:6.0.1"))
+    implementation(project(":"))
+    testImplementation(platform("org.junit:junit-bom:5.10.0"))
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
-
-    testImplementation("org.assertj:assertj-core:3.27.6")
 }
 
 tasks.test {
