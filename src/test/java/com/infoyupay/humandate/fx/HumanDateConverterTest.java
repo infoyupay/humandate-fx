@@ -127,7 +127,7 @@ final class HumanDateConverterTest {
     @Test
     void parser_en_shouldUnderstandNowYesterdayTomorrow() {
         var converter = new HumanDateConverter();
-        converter.getParser().setLanguage(Languages.en());
+        converter.languageProperty().set(Languages.en());
         assertThat(converter.fromString("now")).isEqualTo(LocalDate.now());
         assertThat(converter.fromString("tomorrow")).isEqualTo(LocalDate.now().plusDays(1));
         assertThat(converter.fromString("yesterday")).isEqualTo(LocalDate.now().minusDays(1));
