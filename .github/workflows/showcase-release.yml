@@ -1,0 +1,43 @@
+name: Showcase Release
+
+on:
+  push:
+    tags:
+      - 'v*-showcase'
+
+jobs:
+  build-showcase:
+    name: Build showcase on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'gradle'
+
+      - name: Grant execute permission for Gradle wrapper (Unix)
+        if: runner.os != 'Windows'
+        run: chmod +x ./gradlew
+
+      - name: Build and package showcase runtime
+        run: ./gradlew :showcase:zipShowcaseRuntime
+
+      - name: Upload showcase artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: showcase-${{ runner.os }}
+          path: showcase/build/dist/*.zip
