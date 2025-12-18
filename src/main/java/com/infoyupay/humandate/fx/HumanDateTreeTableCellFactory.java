@@ -25,7 +25,6 @@ import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.scene.control.TreeTableCell;
 import javafx.scene.control.TreeTableColumn;
-import javafx.scene.control.cell.TextFieldTableCell;
 import javafx.scene.control.cell.TextFieldTreeTableCell;
 import javafx.util.Callback;
 
@@ -36,25 +35,35 @@ import java.util.Objects;
 import static com.infoyupay.humandate.fx.HumanDateDefaults.DEFAULT_FORMAT;
 
 /**
- * A {@link Callback} implementation that produces editable tree-table cells
- * capable of formatting and parsing {@link LocalDate} using human-friendly rules.
- * <br/><br/>
+ * A {@link Callback} implementation that produces editable {@link TreeTableCell}
+ * instances capable of formatting and parsing {@link LocalDate} values using
+ * human-friendly rules.
  *
  * <p>
  * This factory configures {@link TextFieldTreeTableCell} instances with a
- * {@link HumanDateConverter} whose language and formatting pattern are dynamic,
- * allowing real-time UI updates when these properties change.
+ * {@link HumanDateConverter} whose language and formatting pattern are
+ * <b>reactively updated</b>. Unlike {@link javafx.scene.control.ListView},
+ * {@link javafx.scene.control.TreeTableView} invokes
+ * {@code TreeTableCell.updateItem(Object, boolean)} whenever the underlying
+ * cell state changes, allowing updates to internal properties of the factory
+ * to be reflected in existing cells.
  * </p>
- * <br/>
+ *
+ * <p>
+ * As a result, this factory is intentionally designed as a <b>mutable</b>
+ * component. Changes to {@link #languageProperty()} or
+ * {@link #formatProperty()} automatically trigger the recreation of the
+ * underlying {@link HumanDateConverter} and are propagated to visible cells
+ * during their normal update lifecycle.
+ * </p>
  *
  * <p><b>Semantic notes:</b><br/>
- * This class intentionally does not provide a custom {@code TreeTableCell}
- * implementation, because the underlying editor remains a
- * {@link javafx.scene.control.TextField}. Its responsibility is strictly to
- * adapt formatting/parsing, not to redefine the editing UI (e.g., a calendar
- * popup). A specialized date-picker tree-cell would be a separate component.
+ * This class does not provide a custom {@code TreeTableCell} implementation.
+ * The underlying editor remains a {@link javafx.scene.control.TextField}, and
+ * the responsibility of this factory is strictly limited to adapting
+ * formatting and parsing behavior. A specialized date-picker tree-table cell
+ * would be a separate component.
  * </p>
- * <br/>
  *
  * <h2>Example usage</h2>
  * {@snippet :
@@ -65,11 +74,11 @@ import static com.infoyupay.humandate.fx.HumanDateDefaults.DEFAULT_FORMAT;
  * );
  *
  * // Enable human-friendly formatting/parsing in the column
- * birthColumn.setCellFactory(new HumanDateTreeTableCellFactory<>());
+ * HumanDateTreeTableCellFactory<Person> factory =
+ *         new HumanDateTreeTableCellFactory<>();
+ * birthColumn.setCellFactory(factory);
  *
- * // Change to Spanish and "dd/MM/yyyy" format at runtime
- * var factory =
- *     (HumanDateTreeTableCellFactory<Person>) birthColumn.getCellFactory();
+ * // Update language at runtime (cells will refresh automatically)
  * factory.setLanguage(Languages.es());
  *}
  *
@@ -84,19 +93,30 @@ import static com.infoyupay.humandate.fx.HumanDateDefaults.DEFAULT_FORMAT;
 public final class HumanDateTreeTableCellFactory<S>
         implements Callback<TreeTableColumn<S, LocalDate>, TreeTableCell<S, LocalDate>> {
 
-    private ObjectBinding<HumanDateConverter> converter;
-
+    /**
+     * Formatting rule used to render {@link LocalDate} values as text.
+     */
     private final ObjectProperty<DateTimeFormatter> format =
             new SimpleObjectProperty<>(this, "format", DEFAULT_FORMAT);
-
+    /**
+     * Natural language rules applied when parsing and formatting dates.
+     */
     private final ObjectProperty<LanguageSupport> language =
             new SimpleObjectProperty<>(this, "language", Languages.es());
+    /**
+     * Reactive binding that recreates the {@link HumanDateConverter} whenever
+     * the active language or format changes.
+     */
+    private ObjectBinding<HumanDateConverter> converter;
 
     /**
-     * Creates a cell factory using English language and "dd/MM/yyyy" format by default.
-     * <br/>
-     * The underlying converter instance is automatically recreated whenever
-     * {@link #languageProperty()} or {@link #formatProperty()} changes.
+     * Creates a cell factory using the default language and format.
+     *
+     * <p>
+     * The underlying {@link HumanDateConverter} is recreated automatically
+     * whenever the {@link #languageProperty()} or {@link #formatProperty()}
+     * changes.
+     * </p>
      */
     public HumanDateTreeTableCellFactory() {
         initBindings();
@@ -104,19 +124,18 @@ public final class HumanDateTreeTableCellFactory<S>
 
     /**
      * Creates a cell factory pre-configured with the given language and format.
-     * <br/><br/>
-     * <p>
-     * This constructor ensures that the converter binding is initialized
-     * <b>after</b> the desired defaults are applied, preventing the creation
-     * of multiple underlying converters and reducing start-up overhead.
-     * <br/><br/>
      *
-     * @param language the natural-language parsing rule to apply
+     * <p>
+     * Property values are applied before initializing the reactive converter
+     * binding, ensuring consistent startup behavior.
+     * </p>
+     *
+     * @param language the natural-language parsing rules to apply
      * @param format   the {@link DateTimeFormatter} used for string conversion
      * @throws NullPointerException if either argument is {@code null}
      */
     public HumanDateTreeTableCellFactory(final LanguageSupport language,
-                                    final DateTimeFormatter format) {
+                                         final DateTimeFormatter format) {
         this.language.set(Objects.requireNonNull(language));
         this.format.set(Objects.requireNonNull(format));
         initBindings();
@@ -126,13 +145,13 @@ public final class HumanDateTreeTableCellFactory<S>
      * Initializes the reactive binding responsible for creating
      * {@link HumanDateConverter} instances whenever the language or format
      * properties change.
-     * <br/><br/>
-     * <p>
-     * This method enforces one-time initialization to preserve the semantic
-     * immutability of the converter binding and to prevent accidental
-     * reconfiguration outside of constructors.
      *
-     * @throws IllegalStateException if the converter is already initialized
+     * <p>
+     * This method is invoked exclusively from constructors and enforces
+     * one-time initialization to prevent accidental rebinding.
+     * </p>
+     *
+     * @throws IllegalStateException if the converter binding is already initialized
      */
     private void initBindings() {
         if (converter != null)
@@ -145,9 +164,15 @@ public final class HumanDateTreeTableCellFactory<S>
     }
 
     /**
-     * Produces a new {@link TextFieldTableCell} bound to the live converter property.
+     * Produces a new {@link TextFieldTreeTableCell} configured with the
+     * currently active {@link HumanDateConverter}.
      *
-     * @param column column requesting a cell
+     * <p>
+     * The converter is reassigned during item updates to ensure that
+     * changes to language or format are reflected in reused cells.
+     * </p>
+     *
+     * @param column the column requesting a cell
      * @return a configured cell for editing {@link LocalDate} values
      */
     @Override
@@ -161,10 +186,10 @@ public final class HumanDateTreeTableCellFactory<S>
         };
     }
 
-    // --- Language Property -------------------------------------------------
-
     /**
      * Returns the currently active parsing language.
+     *
+     * @return the active {@link LanguageSupport}
      */
     public LanguageSupport getLanguage() {
         return language.get();
@@ -172,24 +197,26 @@ public final class HumanDateTreeTableCellFactory<S>
 
     /**
      * Updates the human-language parsing behavior of cells created by this factory.
+     *
+     * @param language the new language to apply
      */
     public void setLanguage(final LanguageSupport language) {
         this.language.set(language);
     }
 
     /**
-     * Property enabling human-readable language binding.
+     * Property enabling reactive control of the parsing language.
      *
-     * @return JavaFx Property.
+     * @return a JavaFX property representing the active language
      */
     public ObjectProperty<LanguageSupport> languageProperty() {
         return language;
     }
 
-    // --- Format Property ---------------------------------------------------
-
     /**
-     * Returns the active string representation pattern.
+     * Returns the active string formatting pattern.
+     *
+     * @return the active {@link DateTimeFormatter}
      */
     public DateTimeFormatter getFormat() {
         return format.get();
@@ -197,17 +224,20 @@ public final class HumanDateTreeTableCellFactory<S>
 
     /**
      * Sets the formatting rule applied when converting dates to text in cells.
+     *
+     * @param format the formatter to apply
      */
     public void setFormat(final DateTimeFormatter format) {
         this.format.set(format);
     }
 
     /**
-     * Property enabling control of formatting rules at runtime.
+     * Property enabling reactive control of formatting rules at runtime.
      *
-     * @return JavaFx Property.
+     * @return a JavaFX property representing the active formatter
      */
     public ObjectProperty<DateTimeFormatter> formatProperty() {
         return format;
     }
+
 }
