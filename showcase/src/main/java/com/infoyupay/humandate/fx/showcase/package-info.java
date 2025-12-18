@@ -27,8 +27,13 @@
  *     <li>Human-friendly date conversion in {@link javafx.scene.control.TextField}</li>
  *     <li>Editable date cells in {@link javafx.scene.control.TableView} and {@link javafx.scene.control.TreeTableView}</li>
  *     <li>Labels that display dates using natural-language rules</li>
- *     <li>Live reconfiguration of language and format using JavaFX properties</li>
+ *     <li>Live reconfiguration of language and date formatting using JavaFX properties</li>
  * </ul>
+ *
+ * <p>
+ * The UI is intentionally defined using declarative FXML constructs,
+ * minimizing imperative wiring in the controller.
+ * </p>
  *
  * <p>
  * The showcase is <b>not</b> part of the deployable library — it serves as an
@@ -37,7 +42,7 @@
  * </p>
  *
  * <p><b>Target audience:</b><br>
- * Developers using JavaFX 21+ who require intuitive date input/editing
+ * Developers using JavaFX 21+ who require intuitive date input and editing
  * without sacrificing internationalization or validation.
  * </p>
  *
@@ -49,3 +54,4 @@
  * @since 1.0
  */
 package com.infoyupay.humandate.fx.showcase;
+

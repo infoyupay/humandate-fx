@@ -19,20 +19,39 @@
 package com.infoyupay.humandate.fx.showcase;
 
 import javafx.application.Application;
-import javafx.scene.Scene;
-import javafx.scene.control.Label;
 import javafx.stage.Stage;
 
+/**
+ * JavaFX application entry point for the HumanDate-FX showcase.
+ *
+ * <p>
+ * This class bootstraps the JavaFX runtime and loads the showcase UI,
+ * demonstrating HumanDate integration across multiple JavaFX controls.
+ * </p>
+ *
+ * @author InfoYupay SACS
+ * @version 1.0
+ */
 public class FxShowcaseApp extends Application {
 
+    /**
+     * Launches the JavaFX application.
+     *
+     * @param args command-line arguments passed to the application
+     */
     public static void main(String[] args) {
         launch(args);
     }
 
+    /**
+     * Initializes and displays the primary application stage.
+     *
+     * @param primaryStage the primary stage provided by the JavaFX runtime
+     */
     @Override
     public void start(Stage primaryStage) {
         primaryStage.setTitle("HumanDate-FX Showcase");
-        primaryStage.setScene(new Scene(new Label("HOLA ALLÁ!")));
+        FxShowcaseForm.loadInto(primaryStage);
         primaryStage.show();
     }
 }
