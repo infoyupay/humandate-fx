@@ -35,54 +35,88 @@ import java.util.Objects;
 import static com.infoyupay.humandate.fx.HumanDateDefaults.DEFAULT_FORMAT;
 
 /**
- * A {@link Callback} implementation that produces editable table cells capable
- * of formatting and parsing {@link LocalDate} using human-friendly rules.
- * <br/><br/>
+ * A {@link Callback} implementation that produces editable {@link TableCell}
+ * instances capable of formatting and parsing {@link LocalDate} values using
+ * human-friendly rules.
+ *
  * <p>
  * This factory configures {@link TextFieldTableCell} instances with a
- * {@link HumanDateConverter} whose language and formatting pattern are dynamic,
- * allowing real-time UI updates when these properties change.
- * <br/><br/>
+ * {@link HumanDateConverter} whose language and formatting pattern are
+ * <b>reactively updated</b>. {@link javafx.scene.control.TableView} invokes
+ * {@code TableCell.updateItem(Object, boolean)} during its normal lifecycle,
+ * allowing changes to the factory's internal properties to be reflected in
+ * already created cells.
+ * </p>
+ *
+ * <p>
+ * As a result, this factory is intentionally designed as a <b>mutable</b>
+ * component. Updates to {@link #languageProperty()} or
+ * {@link #formatProperty()} automatically recreate the underlying
+ * {@link HumanDateConverter} and are propagated to visible cells without
+ * requiring the factory to be replaced.
+ * </p>
  *
  * <p><b>Semantic notes:</b><br/>
- * This class intentionally does not provide a custom {@code TableCell}
- * implementation, because the underlying editor remains a {@link javafx.scene.control.TextField}.
- * Its responsibility is strictly to adapt formatting/parsing, not to redefine
- * the editing UI (e.g., a calendar popup). A specialized date picker cell would
- * be a different component.
+ * This class does not provide a custom {@code TableCell} implementation.
+ * The underlying editor remains a {@link javafx.scene.control.TextField}.
+ * Its responsibility is strictly to adapt formatting and parsing behavior,
+ * not to redefine the editing UI (e.g., a calendar popup). A specialized
+ * date-picker table cell would be a separate component.
  * </p>
  *
  * <h2>Example usage</h2>
  * {@snippet :
- * TableColumn<Person, LocalDate> birthColumn = new TableColumn<>("Birth date");
- * birthColumn.setCellValueFactory(new PropertyValueFactory<>("birthDate"));
- * birthColumn.setCellFactory(new HumanDateTableCellFactory<>());
+ * TableColumn<Person, LocalDate> birthColumn =
+ *         new TableColumn<>("Birth date");
+ * birthColumn.setCellValueFactory(
+ *         new PropertyValueFactory<>("birthDate")
+ * );
  *
- * // Change to Spanish and "dd/MM/yyyy" format at runtime
- * var factory = (HumanDateTableCellFactory<Person>) birthColumn.getCellFactory();
+ * HumanDateTableCellFactory<Person> factory =
+ *         new HumanDateTableCellFactory<>();
+ * birthColumn.setCellFactory(factory);
+ *
+ * // Update language at runtime (cells refresh automatically)
  * factory.setLanguage(Languages.es());
  *}
  *
- * @param <S> the type of items contained within the TableColumn rows
+ * @param <S> the type of items contained within the {@link javafx.scene.control.TableView}
  * @author David Vidal, Infoyupay
  * @version 1.0
  * @see HumanDateConverter
  * @see HumanDateTextFormatter
+ * @see javafx.scene.control.TableCell
+ * @see javafx.scene.control.cell.TextFieldTableCell
  */
 public final class HumanDateTableCellFactory<S>
         implements Callback<TableColumn<S, LocalDate>, TableCell<S, LocalDate>> {
 
+    /**
+     * Formatting rule used to render {@link LocalDate} values as text.
+     */
     private final ObjectProperty<DateTimeFormatter> format =
             new SimpleObjectProperty<>(this, "format", DEFAULT_FORMAT);
+
+    /**
+     * Natural language rules applied when parsing and formatting dates.
+     */
     private final ObjectProperty<LanguageSupport> language =
             new SimpleObjectProperty<>(this, "language", Languages.es());
+
+    /**
+     * Reactive binding that recreates the {@link HumanDateConverter} whenever
+     * the active language or format changes.
+     */
     private ObjectBinding<HumanDateConverter> converter;
 
     /**
-     * Creates a cell factory using English language and "dd/MM/yyyy" format by default.
-     * <br/>
-     * The underlying converter instance is automatically recreated whenever
-     * {@link #languageProperty()} or {@link #formatProperty()} changes.
+     * Creates a cell factory using the default language and format.
+     *
+     * <p>
+     * The underlying {@link HumanDateConverter} is recreated automatically
+     * whenever the {@link #languageProperty()} or {@link #formatProperty()}
+     * changes.
+     * </p>
      */
     public HumanDateTableCellFactory() {
         initBindings();
@@ -90,14 +124,13 @@ public final class HumanDateTableCellFactory<S>
 
     /**
      * Creates a cell factory pre-configured with the given language and format.
-     * <br/><br/>
-     * <p>
-     * This constructor ensures that the converter binding is initialized
-     * <b>after</b> the desired defaults are applied, preventing the creation
-     * of multiple underlying converters and reducing start-up overhead.
-     * <br/><br/>
      *
-     * @param language the natural-language parsing rule to apply
+     * <p>
+     * Property values are applied before initializing the reactive converter
+     * binding, ensuring consistent startup behavior.
+     * </p>
+     *
+     * @param language the natural-language parsing rules to apply
      * @param format   the {@link DateTimeFormatter} used for string conversion
      * @throws NullPointerException if either argument is {@code null}
      */
@@ -112,13 +145,13 @@ public final class HumanDateTableCellFactory<S>
      * Initializes the reactive binding responsible for creating
      * {@link HumanDateConverter} instances whenever the language or format
      * properties change.
-     * <br/><br/>
-     * <p>
-     * This method enforces one-time initialization to preserve the semantic
-     * immutability of the converter binding and to prevent accidental
-     * reconfiguration outside of constructors.
      *
-     * @throws IllegalStateException if the converter is already initialized
+     * <p>
+     * This method is invoked exclusively from constructors and enforces
+     * one-time initialization to prevent accidental rebinding.
+     * </p>
+     *
+     * @throws IllegalStateException if the converter binding is already initialized
      */
     private void initBindings() {
         if (converter != null)
@@ -131,9 +164,15 @@ public final class HumanDateTableCellFactory<S>
     }
 
     /**
-     * Produces a new {@link TextFieldTableCell} bound to the live converter property.
+     * Produces a new {@link TextFieldTableCell} configured with the
+     * currently active {@link HumanDateConverter}.
      *
-     * @param column column requesting a cell
+     * <p>
+     * The converter is reassigned during item updates to ensure that
+     * changes to language or format are reflected in reused cells.
+     * </p>
+     *
+     * @param column the column requesting a cell
      * @return a configured cell for editing {@link LocalDate} values
      */
     @Override
@@ -147,10 +186,10 @@ public final class HumanDateTableCellFactory<S>
         };
     }
 
-    // --- Language Property -------------------------------------------------
-
     /**
      * Returns the currently active parsing language.
+     *
+     * @return the active {@link LanguageSupport}
      */
     public LanguageSupport getLanguage() {
         return language.get();
@@ -158,24 +197,26 @@ public final class HumanDateTableCellFactory<S>
 
     /**
      * Updates the human-language parsing behavior of cells created by this factory.
+     *
+     * @param language the new language to apply
      */
     public void setLanguage(final LanguageSupport language) {
         this.language.set(language);
     }
 
     /**
-     * Property enabling human-readable language binding.
+     * Property enabling reactive control of the parsing language.
      *
-     * @return JavaFx Property.
+     * @return a JavaFX property representing the active language
      */
     public ObjectProperty<LanguageSupport> languageProperty() {
         return language;
     }
 
-    // --- Format Property ---------------------------------------------------
-
     /**
-     * Returns the active string representation pattern.
+     * Returns the active string formatting pattern.
+     *
+     * @return the active {@link DateTimeFormatter}
      */
     public DateTimeFormatter getFormat() {
         return format.get();
@@ -183,15 +224,17 @@ public final class HumanDateTableCellFactory<S>
 
     /**
      * Sets the formatting rule applied when converting dates to text in cells.
+     *
+     * @param format the formatter to apply
      */
     public void setFormat(final DateTimeFormatter format) {
         this.format.set(format);
     }
 
     /**
-     * Property enabling control of formatting rules at runtime.
+     * Property enabling reactive control of formatting rules at runtime.
      *
-     * @return JavaFx Property.
+     * @return a JavaFX property representing the active formatter
      */
     public ObjectProperty<DateTimeFormatter> formatProperty() {
         return format;
