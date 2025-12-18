@@ -90,7 +90,7 @@ public final class HumanDateTreeTableCellFactory<S>
             new SimpleObjectProperty<>(this, "format", DEFAULT_FORMAT);
 
     private final ObjectProperty<LanguageSupport> language =
-            new SimpleObjectProperty<>(this, "language", Languages.en());
+            new SimpleObjectProperty<>(this, "language", Languages.es());
 
     /**
      * Creates a cell factory using English language and "dd/MM/yyyy" format by default.
@@ -152,9 +152,13 @@ public final class HumanDateTreeTableCellFactory<S>
      */
     @Override
     public TreeTableCell<S, LocalDate> call(final TreeTableColumn<S, LocalDate> column) {
-        var cell = new TextFieldTreeTableCell<S, LocalDate>();
-        cell.converterProperty().bind(converter);
-        return cell;
+        return new TextFieldTreeTableCell<>(converter.get()) {
+            @Override
+            public void updateItem(LocalDate localDate, boolean b) {
+                super.updateItem(localDate, b);
+                setConverter(converter.get());
+            }
+        };
     }
 
     // --- Language Property -------------------------------------------------

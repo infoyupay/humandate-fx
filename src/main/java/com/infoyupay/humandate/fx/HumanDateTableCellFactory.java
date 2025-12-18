@@ -75,7 +75,7 @@ public final class HumanDateTableCellFactory<S>
     private final ObjectProperty<DateTimeFormatter> format =
             new SimpleObjectProperty<>(this, "format", DEFAULT_FORMAT);
     private final ObjectProperty<LanguageSupport> language =
-            new SimpleObjectProperty<>(this, "language", Languages.en());
+            new SimpleObjectProperty<>(this, "language", Languages.es());
     private ObjectBinding<HumanDateConverter> converter;
 
     /**
@@ -138,9 +138,13 @@ public final class HumanDateTableCellFactory<S>
      */
     @Override
     public TableCell<S, LocalDate> call(final TableColumn<S, LocalDate> column) {
-        var cell = new TextFieldTableCell<S, LocalDate>();
-        cell.converterProperty().bind(converter);
-        return cell;
+        return new TextFieldTableCell<>(converter.get()) {
+            @Override
+            public void updateItem(LocalDate localDate, boolean b) {
+                super.updateItem(localDate, b);
+                setConverter(getConverter());
+            }
+        };
     }
 
     // --- Language Property -------------------------------------------------
