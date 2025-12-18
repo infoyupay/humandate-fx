@@ -21,32 +21,42 @@ import com.infoyupay.humandate.core.LanguageSupport;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.control.cell.TextFieldListCell;
-import javafx.scene.control.cell.TextFieldTableCell;
 import javafx.util.Callback;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
 /**
- * A {@link Callback} implementation that produces editable list cells capable
- * of formatting and parsing {@link LocalDate} using human-friendly rules.
- * <br/><br/>
+ * A {@link Callback} implementation that produces editable {@link ListCell}
+ * instances capable of formatting and parsing {@link LocalDate} values using
+ * human-friendly rules.
  *
  * <p>
  * This factory configures {@link TextFieldListCell} instances with a
- * {@link HumanDateConverter} whose language and formatting pattern are dynamic,
- * allowing real-time UI updates when these properties change.
+ * {@link HumanDateConverter}. Due to the lifecycle contract of
+ * {@link javafx.scene.control.ListView}, changes to the internal state of a
+ * cell factory are <b>not</b> propagated to already created cells.
  * </p>
- * <br/>
+ *
+ * <p>
+ * For this reason, this factory is intentionally designed as an immutable
+ * value object. Whenever the language or formatting rules change, a <b>new</b>
+ * instance of {@code HumanDateListCellFactory} must be created and installed
+ * via {@link javafx.scene.control.ListView#setCellFactory(Callback)}.
+ * </p>
+ *
+ * <p>
+ * This behavior is demonstrated in the HumanDate-FX showcase and ensures that
+ * all list cells are recreated with the updated converter configuration.
+ * </p>
  *
  * <p><b>Semantic notes:</b><br/>
  * This class intentionally does not provide a custom {@code ListCell}
- * implementation, because the underlying editor remains a
- * {@link javafx.scene.control.TextField}. Its responsibility is strictly to
- * adapt formatting/parsing, not to redefine the editing UI (e.g., a calendar
- * popup). A specialized date-picker list-cell would be a separate component.
+ * implementation. The underlying editor remains a
+ * {@link javafx.scene.control.TextField}, and the responsibility of this
+ * factory is strictly limited to adapting formatting and parsing behavior.
+ * A specialized date-picker list cell would be a separate component.
  * </p>
- * <br/>
  *
  * <h2>Example usage</h2>
  * {@snippet :
@@ -55,16 +65,18 @@ import java.time.format.DateTimeFormatter;
  *                            LocalDate.now().plusDays(1),
  *                            LocalDate.now().minusDays(1));
  *
- * // Enable human-friendly formatting/parsing in the list
- * listView.setCellFactory(new HumanDateListCellFactory());
+ * // Initial factory
+ * listView.setCellFactory(
+ *     new HumanDateListCellFactory(Languages.en(), HumanDateDefaults.DEFAULT_FORMAT)
+ * );
  *
- * // Change to Spanish and "dd/MM/yyyy" format at runtime
- * var factory =
- *     (HumanDateListCellFactory) listView.getCellFactory();
- * factory.setLanguage(Languages.es());
- * factory.setFormat(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+ * // Later, when the language changes:
+ * listView.setCellFactory(
+ *     new HumanDateListCellFactory(Languages.es(), HumanDateDefaults.DEFAULT_FORMAT)
+ * );
  *}
  *
+ * @param converter the {@link HumanDateConverter} used for formatting and parsing
  * @author David Vidal
  * @version 1.0
  * @see HumanDateConverter
@@ -75,17 +87,16 @@ import java.time.format.DateTimeFormatter;
  */
 public record HumanDateListCellFactory(HumanDateConverter converter)
         implements Callback<ListView<LocalDate>, ListCell<LocalDate>> {
-
     /**
      * Creates a cell factory pre-configured with the given language and format.
-     * <br/><br/>
-     * <p>
-     * This constructor ensures that the converter binding is initialized
-     * <b>after</b> the desired defaults are applied, preventing the creation
-     * of multiple underlying converters and reducing start-up overhead.
-     * <br/><br/>
      *
-     * @param language the natural-language parsing rule to apply
+     * <p>
+     * The provided values are encapsulated in a dedicated
+     * {@link HumanDateConverter} instance. To apply different language or
+     * formatting rules, a new factory instance must be created.
+     * </p>
+     *
+     * @param language the natural-language rules to apply
      * @param format   the {@link DateTimeFormatter} used for string conversion
      * @throws NullPointerException if either argument is {@code null}
      */
@@ -94,14 +105,23 @@ public record HumanDateListCellFactory(HumanDateConverter converter)
         this(new HumanDateConverter(language, format));
     }
 
-    public HumanDateListCellFactory(){
+    /**
+     * Creates a cell factory using the default HumanDate configuration.
+     */
+    public HumanDateListCellFactory() {
         this(new HumanDateConverter());
     }
 
     /**
-     * Produces a new {@link TextFieldTableCell} bound to the live converter property.
+     * Produces a new {@link TextFieldListCell} configured with the factory's
+     * {@link HumanDateConverter}.
      *
-     * @param list list requesting a cell
+     * <p>
+     * The converter is explicitly set during item updates and edit start to
+     * ensure consistent behavior across cell reuse cycles.
+     * </p>
+     *
+     * @param list the list view requesting a cell
      * @return a configured cell for editing {@link LocalDate} values
      */
     @Override
