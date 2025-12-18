@@ -23,7 +23,7 @@
 module com.infoyupay.humandate.fx {
     exports com.infoyupay.humandate.fx;
 
-    requires javafx.base;
-    requires javafx.controls;
-    requires com.infoyupay.humandate.core;
+    requires transitive javafx.base;
+    requires transitive javafx.controls;
+    requires transitive com.infoyupay.humandate.core;
 }
