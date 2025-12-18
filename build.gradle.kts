@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "com.infoyupay.humandate"
-version = "1.0-SNAPSHOT"
+version = "1.0.0"
 
 java {
     sourceCompatibility = JavaVersion.VERSION_21
@@ -28,9 +28,6 @@ repositories {
 
 dependencies {
     api("com.infoyupay.humandate:humandate-core:1.0.0")
-
-    // JavaFX deps vendrán después
-    // testImplementation("org.testfx:testfx-junit5:...")
 
     testImplementation(platform("org.junit:junit-bom:6.0.1"))
     testImplementation("org.junit.jupiter:junit-jupiter")
